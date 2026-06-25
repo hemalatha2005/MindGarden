@@ -15,6 +15,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const entryRoutes = require("./routes/entries");
+const settingsRoutes = require("./routes/settings");
 
 const app = express();
 
@@ -59,6 +60,9 @@ const connectDB = async () => {
 
 // All entry-related routes live under /api/entries
 app.use("/api/entries", entryRoutes);
+
+// All settings-related routes live under /api/settings
+app.use("/api/settings", settingsRoutes);
 
 // Health check endpoint — useful for verifying the server is up
 app.get("/api/health", (req, res) => {
