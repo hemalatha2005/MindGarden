@@ -7,9 +7,21 @@
  */
 
 import axios from "axios";
+import { getSession } from "./authApi";
 
 // Base URL for all API calls — the Vite proxy forwards /api/* to localhost:5000
 const API_BASE = "/api/entries";
+
+const authConfig = () => {
+  const token = getSession()?.token;
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
 
 /**
  * createEntry(text)
@@ -19,7 +31,7 @@ const API_BASE = "/api/entries";
  * @returns {Promise<Object>} - the saved entry document from MongoDB
  */
 export const createEntry = async (text) => {
-  const response = await axios.post(API_BASE, { text });
+  const response = await axios.post(API_BASE, { text }, authConfig());
   return response.data;
 };
 
@@ -31,7 +43,7 @@ export const createEntry = async (text) => {
  * @returns {Promise<Array>} - array of entry documents
  */
 export const fetchEntries = async (filters = {}) => {
-  const response = await axios.get(API_BASE, { params: filters });
+  const response = await axios.get(API_BASE, { ...authConfig(), params: filters });
   return response.data;
 };
 
@@ -44,7 +56,7 @@ export const fetchEntries = async (filters = {}) => {
  * @returns {Promise<Object>} - the updated entry document
  */
 export const updateEntry = async (id, updates) => {
-  const response = await axios.patch(`${API_BASE}/${id}`, updates);
+  const response = await axios.patch(`${API_BASE}/${id}`, updates, authConfig());
   return response.data;
 };
 
@@ -56,6 +68,6 @@ export const updateEntry = async (id, updates) => {
  * @returns {Promise<Object>} - success message
  */
 export const deleteEntry = async (id) => {
-  const response = await axios.delete(`${API_BASE}/${id}`);
+  const response = await axios.delete(`${API_BASE}/${id}`, authConfig());
   return response.data;
 };

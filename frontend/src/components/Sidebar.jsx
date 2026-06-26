@@ -4,7 +4,7 @@
  * Left navigation sidebar containing the brand, views, and tag filters.
  */
 
-import { Leaf, Inbox, CheckSquare, FileText, Bell, Lightbulb, Tag } from "lucide-react";
+import { Leaf, Inbox, CheckSquare, FileText, Bell, Lightbulb, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const NAV_ITEMS = [
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { id: "idea",     label: "Ideas",       icon: Lightbulb },
 ];
 
-const Sidebar = ({ activeFilter, onFilterChange }) => {
+const Sidebar = ({ activeFilter, onFilterChange, onSignOut }) => {
   const location = useLocation();
 
   return (
@@ -92,17 +92,21 @@ const Sidebar = ({ activeFilter, onFilterChange }) => {
         </div>
       </div>
 
-      {/* User / Settings Footer */}
+      {/* Workspace Footer */}
       <div className="p-4 border-t border-gray-200">
-        <Link 
-          to="/settings"
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
         >
-          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold text-[10px]">
-            MG
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center">
+              <Leaf size={14} strokeWidth={2.5} />
+            </div>
+            <span className="font-medium text-gray-700 truncate">Logout</span>
           </div>
-          <span className="font-medium text-gray-700">Account Settings</span>
-        </Link>
+          <LogOut size={15} className="text-gray-400" />
+        </button>
       </div>
     </aside>
   );

@@ -3,8 +3,20 @@
  */
 
 import axios from "axios";
+import { getSession } from "./authApi";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
+
+const authConfig = () => {
+  const token = getSession()?.token;
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {};
+};
 
 export const settingsAPI = {
   /**
@@ -13,7 +25,7 @@ export const settingsAPI = {
    */
   async getSettings() {
     try {
-      const response = await axios.get(`${API_BASE}/settings`);
+      const response = await axios.get(`${API_BASE}/settings`, authConfig());
       return response.data.data;
     } catch (error) {
       console.warn("Could not fetch settings from server, using local fallback");
@@ -27,7 +39,7 @@ export const settingsAPI = {
    */
   async updateSettings(updates) {
     try {
-      const response = await axios.patch(`${API_BASE}/settings`, updates);
+      const response = await axios.patch(`${API_BASE}/settings`, updates, authConfig());
       // Also save to localStorage for offline support
       const current = localStorage.getItem("mindgarden_settings");
       const merged = { ...JSON.parse(current || "{}"), ...updates };
@@ -47,7 +59,7 @@ export const settingsAPI = {
    */
   async resetSettings() {
     try {
-      const response = await axios.post(`${API_BASE}/settings/reset`);
+      const response = await axios.post(`${API_BASE}/settings/reset`, {}, authConfig());
       localStorage.removeItem("mindgarden_settings");
       return response.data.data;
     } catch (error) {
