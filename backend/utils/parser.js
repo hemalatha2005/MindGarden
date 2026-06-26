@@ -24,9 +24,9 @@ const TYPE_RULES = [
   // Reminder keywords
   { keywords: ["remind", "reminder", "don't forget", "dont forget", "alert", "notify", "alarm", "schedule"], type: "reminder" },
   // Idea keywords
-  { keywords: ["idea:", "idea -", "idea—", "thought:", "concept:", "what if", "what about", "brainstorm", "maybe we", "maybe i"], type: "idea" },
+  { keywords: ["idea:", "idea -", "idea—", "thought:", "concept", "possibility", "what if", "what about", "brainstorm", "maybe we", "maybe i"], type: "idea" },
   // Task keywords (action verbs / obligation words)
-  { keywords: ["finish", "complete", "submit", "do ", "need to", "have to", "must", "buy", "get ", "pick up", "call ", "fix ", "send ", "write ", "prepare", "review", "update", "check ", "clean", "book ", "pay ", "apply", "register", "build", "create", "make ", "deadline", "due "], type: "task" },
+  { keywords: ["finish", "complete", "submit", "need to", "have to", "must", "buy", "get ", "pick up", "call ", "fix ", "send ", "write ", "prepare", "review", "update", "check ", "clean", "book ", "pay ", "apply", "register", "build", "create", "make ", "deadline", "due "], type: "task" },
 ];
 
 /**
@@ -34,13 +34,27 @@ const TYPE_RULES = [
  * Multiple tags can apply to one entry.
  */
 const TAG_RULES = [
-  { keywords: ["assignment", "exam", "study", "class", "lecture", "homework", "course", "college", "university", "school", "dbms", "dsa", "os ", "quiz", "test ", "interview", "coding"], tag: "study" },
+  { keywords: ["assignment", "exam", "study", "class", "lecture", "homework", "course", "college", "university", "school", "dbms", "dsa", "os ", "quiz", "test ", "interview", "coding", "biology", "science", "cell", "mitochondria"], tag: "study" },
   { keywords: ["meeting", "project", "deadline", "client", "office", "work", "boss", "team", "sprint", "standup", "presentation", "report", "email", "slack"], tag: "work" },
-  { keywords: ["mom", "dad", "family", "friend", "personal", "birthday", "anniversary", "party", "home", "house"], tag: "personal" },
+  { keywords: ["mom", "dad", "family", "friend", "personal", "birthday", "anniversary", "party", "home"], tag: "personal" },
   { keywords: ["gym", "health", "doctor", "medicine", "workout", "exercise", "diet", "calories", "sleep", "mental", "therapy", "hospital", "appointment"], tag: "health" },
   { keywords: ["urgent", "asap", "immediately", "critical", "emergency", "right now", "today", "tonight", "important"], tag: "urgent" },
   { keywords: ["buy", "get ", "grocery", "groceries", "milk", "eggs", "bread", "store", "shop", "order", "amazon", "flipkart"], tag: "shopping" },
 ];
+
+const hasIdeaIntent = (text) => {
+  const ideaPatterns = [
+    /\bidea\b/,
+    /\bconcept\b/,
+    /\bpossibility\b/,
+    /\bwhat if\b/,
+    /\bbrainstorm\b/,
+    /\bmaybe (we|i)\b/,
+    /\b(start|open|launch)\s+(a|an|my|our)?\s*(cafe|business|startup|company|shop|store|restaurant|brand|app|website|platform|service)\b/,
+  ];
+
+  return ideaPatterns.some((pattern) => pattern.test(text));
+};
 
 // ──────────────────────────────────────────────
 // Type Detection
@@ -55,6 +69,14 @@ const TAG_RULES = [
  * @returns {string} - "task" | "note" | "reminder" | "idea"
  */
 const detectType = (text) => {
+  // Check for slash commands first
+  if (text.startsWith("/task")) return "task";
+  if (text.startsWith("/note")) return "note";
+  if (text.startsWith("/reminder")) return "reminder";
+  if (text.startsWith("/idea")) return "idea";
+
+  if (hasIdeaIntent(text)) return "idea";
+
   for (const rule of TYPE_RULES) {
     if (rule.keywords.some((kw) => text.includes(kw))) {
       return rule.type;
@@ -114,6 +136,13 @@ const parseDate = (text) => {
     return d;
   };
 
+  // End of day / EOD means today evening.
+  if (/\b(eod|end of day|end-of-day)\b/.test(text)) {
+    const d = new Date(now);
+    d.setHours(17, 0, 0, 0);
+    return d;
+  }
+
   // Today or tonight
   if (text.includes("tonight") || text.includes("today")) {
     const d = new Date(now);
@@ -123,7 +152,7 @@ const parseDate = (text) => {
   }
 
   // Tomorrow
-  if (text.includes("tomorrow") || text.includes("tmrw")) {
+  if (text.includes("tomorrow") || text.includes("tmrw") || text.includes("tommorow") || text.includes("tomorow")) {
     const d = daysFromNow(1);
     // If "evening" is mentioned, set 6 PM
     if (text.includes("evening")) d.setHours(18, 0, 0, 0);
@@ -185,15 +214,14 @@ const generateSummary = (text) => {
   const cleaned = text.trim();
 
   // Short enough — no summary needed
-  if (cleaned.length <= 60) return cleaned;
-
-  // Remove filler starters like "remind me to", "i need to", "don't forget to"
+  // Remove filler starters and slash commands
   const stripped = cleaned
-    .replace(/^(remind me to|i need to|i have to|don't forget to|please |note:|idea:|thought:)\s*/i, "")
+    .replace(/^(remind me\s+(today|tomorrow|tonight|by eod|at eod|on \w+)?\s*to|remind me to|i need to|i have to|don't forget to|please |note:|idea:|thought:|\/task|\/note|\/reminder|\/idea)\s*/i, "")
     .trim();
 
   // Capitalize first letter
-  const capitalized = stripped.charAt(0).toUpperCase() + stripped.slice(1);
+  const summarySource = stripped || cleaned;
+  const capitalized = summarySource.charAt(0).toUpperCase() + summarySource.slice(1);
 
   // Truncate at 60 characters at a word boundary
   if (capitalized.length <= 60) return capitalized;
@@ -223,15 +251,32 @@ const generateSummary = (text) => {
  * @param {string} rawText - original user input
  * @returns {{ type, tags, dueDate, summary }}
  */
+const splitEntries = (text) => {
+  return text
+    .split(/\s+and\s+(?=remind|need|idea|note)/i)
+    .map(part => part.trim())
+    .filter(Boolean);
+};
 const parseEntry = (rawText) => {
   const lower = rawText.toLowerCase();
+  
 
-  const type = detectType(lower);
+  let type = detectType(lower);
   const tags = detectTags(lower);
   const dueDate = parseDate(lower);
+
+  // If the user mentions a date/time, they want it classified as a reminder
+  // (unless they explicitly used a slash command to force it to be something else)
+  if (dueDate && !lower.startsWith("/task") && !lower.startsWith("/note") && !lower.startsWith("/idea") && !lower.startsWith("/reminder")) {
+    type = "reminder";
+  }
+
   const summary = generateSummary(rawText);
 
   return { type, tags, dueDate, summary };
 };
-
-module.exports = { parseEntry };
+const parseMultipleEntries = (rawText) => {
+  const chunks = splitEntries(rawText);
+  return chunks.map(chunk => parseEntry(chunk));
+};
+module.exports = { parseEntry, parseMultipleEntries };

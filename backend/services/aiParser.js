@@ -23,9 +23,14 @@ Convert one natural-language capture into structured JSON for storage.
 
 Rules:
 - type must be one of: task, note, reminder, idea.
+- Classify early-stage concepts, possibilities, business ideas, app ideas, startup ideas,
+  and phrases like "start a cafe" as idea unless the user clearly assigns an action/deadline.
+- If the user uses the word "idea" anywhere, type should be idea.
 - tags must be short lowercase semantic labels from this set when possible:
   study, work, personal, health, urgent, shopping, finance, career, home, general.
 - summary must be a clear one-line summary, maximum 80 characters.
+- summary must be self-contained. Do not use vague pronouns like "it", "this", or "that"
+  when the object can be named from the capture.
 - dueDate must be an ISO 8601 date/time string when the user mentions a date or reminder time.
 - If there is no due date, use null.
 - completed must always be false for a new capture.
@@ -71,11 +76,19 @@ const cleanDueDate = (dueDate) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const hasVaguePronoun = (text) => /\b(it|this|that|them)\b/i.test(text);
+
 const normalizeAIResult = (raw, originalText, model) => {
-  const summary = String(raw.summary || originalText).trim().slice(0, 80);
+  const rulesResult = parseEntry(originalText);
+  const aiSummary = String(raw.summary || originalText).trim().slice(0, 80);
+  const rulesSummary = String(rulesResult.summary || "").trim();
+  const summary = hasVaguePronoun(aiSummary) && rulesSummary && !hasVaguePronoun(rulesSummary)
+    ? rulesSummary
+    : aiSummary;
+  const type = rulesResult.type === "idea" ? "idea" : cleanType(raw.type);
 
   return {
-    type: cleanType(raw.type),
+    type,
     tags: cleanTags(raw.tags),
     dueDate: cleanDueDate(raw.dueDate),
     summary: summary || originalText.trim().slice(0, 80),
