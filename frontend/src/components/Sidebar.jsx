@@ -1,10 +1,4 @@
-/**
- * components/Sidebar.jsx
- *
- * Left navigation sidebar containing the brand, views, and tag filters.
- */
-
-import { Leaf, Inbox, CheckSquare, FileText, Bell, Lightbulb, LogOut } from "lucide-react";
+import { Command, Inbox, CheckSquare, FileText, Bell, Lightbulb, LogOut, Zap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const NAV_ITEMS = [
@@ -19,22 +13,20 @@ const Sidebar = ({ activeFilter, onFilterChange, onSignOut }) => {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-[#F8FAFC] border-r border-gray-200 h-screen flex flex-col sticky top-0 flex-shrink-0">
-      {/* Brand Header */}
-      <div className="p-4 flex items-center gap-2 mb-2">
-        <div className="w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center text-white shadow-sm">
-          <Leaf size={16} strokeWidth={2.5} />
+    <aside className="w-[260px] bg-garden-surface/80 backdrop-blur-xl border-r border-garden-border h-screen flex flex-col sticky top-0 flex-shrink-0">
+      {/* Brand */}
+      <div className="px-5 pt-5 pb-4 flex items-center gap-2.5">
+        <div className="w-8 h-8 bg-gradient-to-br from-garden-primary to-blue-400 rounded-lg flex items-center justify-center text-white shadow-glow">
+          <Command size={16} strokeWidth={2.5} />
         </div>
-        <span className="font-semibold text-gray-900 tracking-tight">MindGarden</span>
+        <span className="text-[15px] font-semibold text-garden-heading tracking-tight">MindGarden</span>
       </div>
 
-      {/* Navigation / Filters */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
-        <div className="mb-6">
-          <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Views
-          </p>
-          <nav className="flex flex-col gap-0.5">
+      {/* Nav */}
+      <div className="flex-1 overflow-y-auto px-3 py-1">
+        <div className="mb-5">
+          <p className="px-3 mb-2 text-[10px] font-bold text-garden-muted/60 uppercase tracking-[0.12em]">Views</p>
+          <nav className="flex flex-col gap-px">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeFilter === item.id && location.pathname === "/";
@@ -42,70 +34,58 @@ const Sidebar = ({ activeFilter, onFilterChange, onSignOut }) => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    // Assuming we are on GardenView or navigating to it
                     if (location.pathname !== "/") {
-                      window.location.href = `/?filter=${item.id}`; // Simple fallback if deep linked
+                      window.location.href = `/?filter=${item.id}`;
                     } else {
                       onFilterChange(item.id);
                     }
                   }}
                   className={`
-                    w-full flex items-center gap-2.5 px-3 py-1.5 text-sm font-medium rounded-md
-                    transition-colors
-                    ${
-                      isActive
-                        ? "bg-gray-200/50 text-gray-900"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    w-full flex items-center gap-2.5 px-3 py-[7px] text-[13px] font-medium rounded-lg
+                    transition-all duration-200
+                    ${isActive
+                      ? "bg-garden-primary/10 text-garden-primary"
+                      : "text-garden-muted hover:bg-garden-elevated hover:text-garden-text"
                     }
                   `}
                 >
-                  <Icon size={16} className={isActive ? "text-blue-600" : "text-gray-400"} />
+                  <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
                   {item.label}
+
                 </button>
               );
             })}
           </nav>
         </div>
 
-        {/* Static Focus Mode Link */}
         <div>
-          <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Workspace
-          </p>
+          <p className="px-3 mb-2 text-[10px] font-bold text-garden-muted/60 uppercase tracking-[0.12em]">Workspace</p>
           <Link
             to="/focus"
             className={`
-              flex items-center gap-2.5 px-3 py-1.5 text-sm font-medium rounded-md
-              transition-colors
-              ${
-                location.pathname === "/focus"
-                  ? "bg-gray-200/50 text-gray-900"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              flex items-center gap-2.5 px-3 py-[7px] text-[13px] font-medium rounded-lg
+              transition-all duration-200
+              ${location.pathname === "/focus"
+                ? "bg-garden-primary/10 text-garden-primary"
+                : "text-garden-muted hover:bg-garden-elevated hover:text-garden-text"
               }
             `}
           >
-            <div className="w-4 h-4 rounded flex items-center justify-center bg-violet-100 text-violet-600">
-              <div className="w-1.5 h-1.5 bg-violet-500 rounded-full" />
-            </div>
+            <Zap size={16} strokeWidth={location.pathname === "/focus" ? 2 : 1.5} />
             Focus Mode
           </Link>
         </div>
       </div>
 
-      {/* Workspace Footer */}
-      <div className="p-4 border-t border-gray-200">
+      {/* Footer */}
+      <div className="px-3 py-3 border-t border-garden-border flex flex-col gap-px">
         <button
           type="button"
           onClick={onSignOut}
-          className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-[7px] text-[13px] font-medium rounded-lg text-garden-muted hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center">
-              <Leaf size={14} strokeWidth={2.5} />
-            </div>
-            <span className="font-medium text-gray-700 truncate">Logout</span>
-          </div>
-          <LogOut size={15} className="text-gray-400" />
+          <LogOut size={15} strokeWidth={1.5} />
+          Sign out
         </button>
       </div>
     </aside>

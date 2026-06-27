@@ -1,9 +1,3 @@
-/**
- * pages/GardenView.jsx
- *
- * Main feed view, utilizing a denser layout with CaptureBar at the top.
- */
-
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchEntries, createEntry, updateEntry, deleteEntry } from "../utils/api";
@@ -90,12 +84,12 @@ const GardenView = ({ activeFilter }) => {
   return (
     <>
       <div className="flex-1 flex flex-col min-w-0 max-w-4xl mx-auto w-full">
-        <div className="flex-1 overflow-y-auto px-6 py-8">
-          
+        <div className="flex-1 overflow-y-auto px-8 py-8">
           <header className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 capitalize">
+            <h1 className="text-xl font-bold tracking-tight text-garden-heading capitalize">
               {activeFilter === "all" ? "Inbox" : `${activeFilter}s`}
             </h1>
+            <p className="text-[13px] text-garden-muted mt-1">Capture and organize your thoughts</p>
           </header>
 
           <CaptureBar onSubmit={handleCapture} isLoading={isLoading} />
@@ -106,7 +100,7 @@ const GardenView = ({ activeFilter }) => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-md mb-6 border border-red-100"
+                className="bg-red-500/10 text-red-400 text-[13px] px-4 py-3 rounded-lg mb-4 border border-red-500/20"
               >
                 {error}
               </motion.div>
@@ -115,12 +109,12 @@ const GardenView = ({ activeFilter }) => {
 
           {isFetching ? (
             <div className="py-20 flex justify-center">
-              <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-garden-border border-t-garden-primary rounded-full animate-spin" />
             </div>
           ) : entries.length === 0 ? (
             <EmptyState filterType={activeFilter} />
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <AnimatePresence mode="popLayout">
                 {entries.map((entry) => (
                   <EntryCard
@@ -128,7 +122,7 @@ const GardenView = ({ activeFilter }) => {
                     entry={entry}
                     onComplete={handleComplete}
                     onDelete={handleDelete}
-                    onOpen={setSelectedEntry}
+                    onUpdate={handleSaveEntry}
                   />
                 ))}
               </AnimatePresence>
@@ -136,8 +130,7 @@ const GardenView = ({ activeFilter }) => {
           )}
         </div>
       </div>
-      
-      {/* Right Side Insight Panel */}
+
       <InsightPanel entries={entries} />
 
       <EntryDetailModal

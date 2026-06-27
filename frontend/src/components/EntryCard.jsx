@@ -1,156 +1,212 @@
-/**
- * components/EntryCard.jsx
- *
- * Compact, premium entry card inspired by Linear/Notion.
- */
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trash2, Clock, CheckCircle2, Circle, Edit3, CheckSquare, FileText, Bell, Lightbulb } from "lucide-react";
 
-import { motion } from "framer-motion";
-import { Check, Calendar, Tag, Trash2, Clock, Maximize2 } from "lucide-react";
-import TypeBadge from "./TypeBadge";
+const TYPE_ICONS = {
+  task: CheckSquare,
+  note: FileText,
+  reminder: Bell,
+  idea: Lightbulb,
+};
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return null;
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
+const TYPE_COLORS = {
+  task: "text-blue-400",
+  note: "text-garden-muted",
+  reminder: "text-amber-400",
+  idea: "text-violet-400",
+};
+
+const EntryCard = ({ entry, onComplete, onDelete, onUpdate }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(entry.text);
+  const [isSaving, setIsSaving] = useState(false);
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+      textareaRef.current.focus();
+    }
+  }, [isEditing, editText]);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    await onDelete(entry._id);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || editText === entry.text) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onUpdate(entry._id, editText);
+    } catch (e) { /* parent handles */ }
+    setIsSaving(false);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+    if (e.key === "Escape") {
+      setEditText(entry.text);
+      setIsEditing(false);
+    }
+  };
+
+  const isTask = entry.type === "task";
+  const isCompleted = entry.completed;
+  const TypeIcon = TYPE_ICONS[entry.type] || FileText;
+  const typeColor = TYPE_COLORS[entry.type] || "text-garden-muted";
+
+  const formattedDate = new Date(entry.createdAt).toLocaleString(undefined, {
+    weekday: "short",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
-};
-
-const timeAgo = (dateStr) => {
-  const now = new Date();
-  const then = new Date(dateStr);
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h`;
-  return `${Math.floor(diffMins / 1440)}d`;
-};
-
-const EntryCard = ({ entry, onComplete, onDelete, onOpen }) => {
-  const { _id, text, type, tags, summary, dueDate, completed, createdAt, parsedBy } = entry;
-
-  const hasVagueSummary = /\b(it|this|that|them)\b/i.test(summary || "");
-  const displayText = summary && summary !== text && !hasVagueSummary ? summary : text;
-  const isLongEntry = text.length > 80 && summary !== text;
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 5 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.15 }}
+      exit={{ opacity: 0, y: -4, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`
-        bg-white border border-gray-200 rounded-lg p-3.5 flex flex-col gap-2.5 relative group
-        shadow-sm hover:shadow-card hover:border-gray-300 transition-all duration-200 cursor-pointer
-        ${completed ? "opacity-60 bg-gray-50" : ""}
+        group bg-garden-surface border border-garden-border rounded-card p-4
+        transition-all duration-200
+        hover:border-garden-borderHover hover:bg-garden-elevated
+        ${isCompleted ? "opacity-50" : ""}
       `}
-      onClick={() => onOpen(entry)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen(entry);
-        }
-      }}
     >
-      {/* Header Row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <TypeBadge type={type} />
-          {parsedBy === "ai" && (
-            <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
-              AI Generated
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2 text-gray-400">
-           <span className="text-xs font-medium flex items-center gap-1">
-             <Clock size={12} />
-             {timeAgo(createdAt)}
-           </span>
-           
-           {/* Actions */}
-           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpen(entry);
-                }}
-                className="p-1 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                title="View full entry"
-              >
-                <Maximize2 size={14} />
-              </button>
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onComplete(_id, !completed);
-                }}
-                className={`p-1 rounded transition-colors ${
-                  completed ? "hover:text-gray-900 hover:bg-gray-200" : "hover:text-emerald-600 hover:bg-emerald-50"
-                }`}
-                title={completed ? "Restore" : "Complete"}
-              >
-                <Check size={14} strokeWidth={2.5} />
-              </button>
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete(_id);
-                }}
-                className="p-1 hover:text-red-600 hover:bg-red-50 rounded transition-colors ml-1"
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="pl-1">
-        <p
-          className={`
-            text-sm text-gray-900 leading-relaxed font-medium
-            ${completed ? "line-through text-gray-500" : ""}
-          `}
-        >
-          {displayText}
-        </p>
-
-        {isLongEntry && !completed && (
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-            {text}
-          </p>
-        )}
-      </div>
-
-      {/* Metadata Row */}
-      {(dueDate || (tags && tags.length > 0)) && (
-        <div className="flex flex-wrap items-center gap-1.5 mt-0.5 pl-1">
-          {dueDate && (
-            <div className="flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium border border-amber-100">
-              <Calendar size={10} />
-              {formatDate(dueDate)}
+      <div className="flex gap-3">
+        {/* Left: Checkbox or Type Icon */}
+        <div className="flex-shrink-0 mt-0.5">
+          {isTask ? (
+            <button
+              onClick={() => onComplete(entry._id, !isCompleted)}
+              className="text-garden-muted hover:text-garden-primary transition-colors"
+            >
+              {isCompleted ? (
+                <CheckCircle2 size={18} className="text-garden-primary" />
+              ) : (
+                <Circle size={18} />
+              )}
+            </button>
+          ) : (
+            <div className={`${typeColor} mt-px`}>
+              <TypeIcon size={17} strokeWidth={1.5} />
             </div>
           )}
-          {tags?.map((tag) => (
-            <span
-              key={tag}
-              className="flex items-center gap-1 text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded font-medium border border-gray-200"
-            >
-              <Tag size={10} />
-              {tag}
-            </span>
-          ))}
         </div>
-      )}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Header row */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[10px] font-bold uppercase tracking-[0.08em] ${typeColor}`}>
+              {entry.type}
+            </span>
+            {entry.parsedBy === "ai" && (
+              <span className="text-[9px] font-bold text-garden-primary bg-garden-primary/10 px-1.5 py-px rounded">
+                AI
+              </span>
+            )}
+            <span className="ml-auto text-[11px] text-garden-muted/60 font-medium">
+              {formattedDate}
+            </span>
+          </div>
+
+          {/* Body */}
+          {isEditing ? (
+            <div className="mt-1">
+              <textarea
+                ref={textareaRef}
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full bg-garden-bg text-[14px] text-garden-text leading-relaxed border border-garden-primary/40 rounded-lg p-2.5 focus:outline-none focus:shadow-glow resize-none"
+                disabled={isSaving}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[11px] text-garden-muted">Enter to save · Esc to cancel</span>
+                <div className="ml-auto flex gap-1.5">
+                  <button
+                    onClick={() => { setEditText(entry.text); setIsEditing(false); }}
+                    className="px-2.5 py-1 text-[11px] font-medium text-garden-muted hover:text-garden-text rounded transition-colors"
+                  >Cancel</button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-2.5 py-1 text-[11px] font-medium bg-garden-primary text-white rounded hover:bg-garden-primaryHover transition-colors"
+                    disabled={isSaving}
+                  >{isSaving ? "Saving..." : "Save"}</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className={`text-[14px] leading-relaxed mt-0.5 ${isCompleted ? "line-through text-garden-muted" : "text-garden-text"}`}>
+              {entry.text}
+            </p>
+          )}
+
+          {/* Footer: tags + due date + actions */}
+          {!isEditing && (
+            <div className="flex items-center gap-2 mt-3">
+              {entry.dueDate && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400/80 bg-amber-400/10 px-2 py-0.5 rounded">
+                  <Clock size={11} />
+                  {new Date(entry.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </span>
+              )}
+              {entry.tags.map((tag) => (
+                <span key={tag} className="text-[11px] font-medium text-garden-muted bg-garden-elevated px-2 py-0.5 rounded">
+                  {tag}
+                </span>
+              ))}
+
+              {/* Actions */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className="ml-auto flex items-center gap-0.5"
+                  >
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="p-1.5 text-garden-muted hover:text-garden-primary hover:bg-garden-primary/10 rounded-md transition-all"
+                      title="Edit"
+                    >
+                      <Edit3 size={13} />
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="p-1.5 text-garden-muted hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all"
+                      title="Delete"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 };

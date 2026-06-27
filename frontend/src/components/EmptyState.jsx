@@ -1,9 +1,3 @@
-/**
- * components/EmptyState.jsx
- *
- * Clean, modern empty state.
- */
-
 import { motion } from "framer-motion";
 import { Inbox, CheckCircle, FileText, Bell, Lightbulb } from "lucide-react";
 
@@ -12,7 +6,7 @@ const EmptyState = ({ filterType }) => {
     all: {
       icon: Inbox,
       title: "No entries yet",
-      subtitle: "Capture your thoughts, tasks, or reminders using the bar below.",
+      subtitle: "Capture your first thought using the bar above.",
     },
     task: {
       icon: CheckCircle,
@@ -41,20 +35,16 @@ const EmptyState = ({ filterType }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className="flex flex-col items-center justify-center py-24 text-center px-6"
     >
-      <div className="w-12 h-12 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mb-4">
-        <Icon size={24} strokeWidth={1.5} />
+      <div className="w-12 h-12 bg-garden-elevated text-garden-muted rounded-xl flex items-center justify-center mb-4 border border-garden-border">
+        <Icon size={22} strokeWidth={1.5} />
       </div>
-
-      <h3 className="text-base font-semibold text-gray-900 mb-1">
-        {content.title}
-      </h3>
-      <p className="text-sm text-gray-500 max-w-xs">
-        {content.subtitle}
-      </p>
+      <h3 className="text-[15px] font-semibold text-garden-heading mb-1">{content.title}</h3>
+      <p className="text-[13px] text-garden-muted max-w-xs">{content.subtitle}</p>
     </motion.div>
   );
 };
