@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Leaf, LockKeyhole } from "lucide-react";
+import { ArrowRight, Command, LockKeyhole } from "lucide-react";
 import {
   clearSession,
   getSession,
@@ -30,14 +30,11 @@ const AuthGate = ({ children }) => {
 
   useEffect(() => {
     if (step !== "otp" || !otpExpiresAt) return undefined;
-
     const tick = () => {
       setSecondsLeft(Math.max(0, Math.ceil((new Date(otpExpiresAt).getTime() - Date.now()) / 1000)));
     };
-
     tick();
     const timer = window.setInterval(tick, 1000);
-
     return () => window.clearInterval(timer);
   }, [otpExpiresAt, step]);
 
@@ -46,23 +43,18 @@ const AuthGate = ({ children }) => {
   const handleEmailSubmit = async (event) => {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
-
     if (!isValidEmail(normalizedEmail)) {
       setError("Enter a valid email address.");
       return;
     }
-
     setError("");
-
     const trustedSession = getTrustedSession(normalizedEmail);
     if (trustedSession) {
       saveSession(trustedSession);
       setSession(trustedSession);
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const result = await requestOtp(normalizedEmail);
       setPendingEmail(normalizedEmail);
@@ -78,15 +70,12 @@ const AuthGate = ({ children }) => {
 
   const handleOtpSubmit = async (event) => {
     event.preventDefault();
-
     if (otp.trim().length !== 6) {
       setError("Enter the 6-digit OTP.");
       return;
     }
-
     setError("");
     setIsSubmitting(true);
-
     try {
       const result = await verifyOtp(pendingEmail, otp.trim());
       const nextSession = {
@@ -121,41 +110,39 @@ const AuthGate = ({ children }) => {
   }
 
   return (
-    <main className="min-h-screen bg-[#FBFBFA] text-gray-950">
+    <main className="min-h-screen bg-garden-bg text-garden-text">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
         <div className="grid w-full items-center gap-10 lg:grid-cols-[1fr_420px]">
           <section>
             <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-sm">
-                <Leaf size={21} strokeWidth={2.4} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-garden-primary to-blue-400 text-white shadow-glow">
+                <Command size={21} strokeWidth={2.4} />
               </div>
-              <span className="text-xl font-semibold tracking-tight">MindGarden</span>
+              <span className="text-xl font-semibold tracking-tight text-garden-heading">MindGarden</span>
             </div>
-
-            <h1 className="max-w-2xl text-4xl font-bold leading-tight tracking-tight text-gray-950 md:text-5xl">
+            <h1 className="max-w-2xl text-4xl font-bold leading-tight tracking-tight text-garden-heading md:text-5xl">
               Capture your thoughts before they disappear.
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-gray-600">
+            <p className="mt-5 max-w-xl text-base leading-7 text-garden-muted">
               A calm place for notes, tasks, reminders, and ideas. Sign in to open your garden.
             </p>
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-200/60">
-            <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+          <section className="rounded-xl border border-garden-border bg-garden-surface p-6 shadow-card">
+            <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg bg-garden-primary/10 text-garden-primary">
               <LockKeyhole size={21} />
             </div>
-
-            <h2 className="text-xl font-semibold tracking-tight text-gray-950">
+            <h2 className="text-xl font-semibold tracking-tight text-garden-heading">
               {step === "email" ? "Sign in" : "Enter OTP"}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-gray-500">
+            <p className="mt-2 text-sm leading-6 text-garden-muted">
               {step === "email"
                 ? "Use your email to continue. OTP will be sent to your inbox."
                 : `Enter the OTP sent to ${pendingEmail}.`}
             </p>
 
             {error && (
-              <div className="mt-4 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
                 {error}
               </div>
             )}
@@ -163,22 +150,21 @@ const AuthGate = ({ children }) => {
             {step === "email" ? (
               <form onSubmit={handleEmailSubmit} className="mt-6 space-y-4">
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Email</span>
+                  <span className="mb-1.5 block text-sm font-medium text-garden-text">Email</span>
                   <input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
-                    className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-950 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50"
+                    className="h-11 w-full rounded-lg border border-garden-border bg-garden-bg px-3 text-sm text-garden-text outline-none focus:border-garden-primary focus:shadow-glow transition-all placeholder:text-garden-muted/40"
                     autoComplete="email"
                     autoFocus
                   />
                 </label>
-
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-gray-800"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-garden-primary px-4 text-sm font-semibold text-white hover:bg-garden-primaryHover transition-colors"
                 >
                   {isSubmitting ? "Sending OTP" : "Continue"}
                   <ArrowRight size={16} />
@@ -186,37 +172,30 @@ const AuthGate = ({ children }) => {
               </form>
             ) : (
               <form onSubmit={handleOtpSubmit} className="mt-6 space-y-4">
-                <div className="rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                <div className="rounded-lg border border-garden-primary/20 bg-garden-primary/10 px-3 py-2 text-sm text-garden-primary">
                   OTP valid for <span className="font-semibold tabular-nums">{formattedTimeLeft}</span>
                 </div>
-
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-gray-700">OTP</span>
+                  <span className="mb-1.5 block text-sm font-medium text-garden-text">OTP</span>
                   <input
                     inputMode="numeric"
                     value={otp}
                     onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
                     placeholder="6-digit code"
-                    className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm tracking-[0.3em] text-gray-950 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50"
+                    className="h-11 w-full rounded-lg border border-garden-border bg-garden-bg px-3 text-sm tracking-[0.3em] text-garden-text outline-none focus:border-garden-primary focus:shadow-glow transition-all placeholder:text-garden-muted/40"
                     autoFocus
                   />
                 </label>
-
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setStep("email");
-                      setError("");
-                    }}
-                    className="h-11 rounded-md border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                  >
-                    Back
-                  </button>
+                    onClick={() => { setStep("email"); setError(""); }}
+                    className="h-11 rounded-lg border border-garden-border bg-garden-surface px-4 text-sm font-semibold text-garden-text hover:bg-garden-elevated transition-colors"
+                  >Back</button>
                   <button
                     type="submit"
                     disabled={isSubmitting || secondsLeft === 0}
-                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-gray-800"
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-garden-primary px-4 text-sm font-semibold text-white hover:bg-garden-primaryHover transition-colors"
                   >
                     {isSubmitting ? "Verifying" : "Verify"}
                     <ArrowRight size={16} />
@@ -225,20 +204,14 @@ const AuthGate = ({ children }) => {
                 {secondsLeft === 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setEmail(pendingEmail);
-                      setStep("email");
-                      setError("OTP expired. Request a new one.");
-                    }}
-                    className="w-full text-sm font-medium text-emerald-700 hover:text-emerald-800"
-                  >
-                    Request a new OTP
-                  </button>
+                    onClick={() => { setEmail(pendingEmail); setStep("email"); setError("OTP expired. Request a new one."); }}
+                    className="w-full text-sm font-medium text-garden-primary hover:text-garden-primaryHover"
+                  >Request a new OTP</button>
                 )}
               </form>
             )}
 
-            <p className="mt-5 text-xs leading-5 text-gray-500">
+            <p className="mt-5 text-xs leading-5 text-garden-muted">
               This device stays signed in after verification.
             </p>
           </section>
