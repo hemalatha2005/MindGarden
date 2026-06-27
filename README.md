@@ -4,7 +4,7 @@
 
 ## ✨ What is MindGarden?
 
-MindGarden is unlike typical productivity dashboards. It's designed to feel **humane, calm, and emotionally intelligent** — like a digital garden where your thoughts can grow.
+MindGarden is designed to feel **calm, simple, and focused** — like a digital garden where your notes can grow instead of noise.
 
 Just type (or speak) anything on your mind:
 - `"Remind me to call mom tomorrow evening"` → Reminder, tagged `personal`, due tomorrow
@@ -21,64 +21,49 @@ C:\ProductivityCaptureTool\
 ├── backend/
 │   ├── controllers/entryController.js   # CRUD logic
 │   ├── models/Entry.js                  # Mongoose schema
+│   ├── models/UserSettings.js           # User settings schema
 │   ├── routes/entries.js                # REST routes
+│   ├── routes/auth.js                   # OTP auth routes
+│   ├── services/aiParser.js             # Optional AI parser integration
 │   ├── utils/parser.js                  # Rule-based NLP parser
 │   ├── .env                             # Your secrets (not committed)
 │   ├── .env.example                     # Template
 │   └── server.js                        # Express entry point
 │
 └── frontend/
+    ├── public/
+    │   ├── favicon.svg                 # Browser tab icon
+    │   └── index.html                  # App shell
     ├── src/
+    │   ├── App.jsx                     # Main app routing
+    │   ├── main.jsx                    # Vite entry point
+    │   ├── index.css                   # Global styles
     │   ├── components/
-    │   │   ├── CaptureBar.jsx           # Bottom input with voice
-    │   │   ├── EntryCard.jsx            # Individual entry card
-    │   │   ├── EmptyState.jsx           # Empty state display
-    │   │   ├── FilterBar.jsx            # Filter pills
-    │   │   └── TypeBadge.jsx            # Type indicator
+    │   │   ├── AuthGate.jsx            # OTP sign-in gate
+    │   │   ├── CaptureBar.jsx          # Entry input + voice mic
+    │   │   ├── EmptyState.jsx          # Empty inbox state
+    │   │   ├── EntryCard.jsx           # Entry list item
+    │   │   ├── EntryDetailModal.jsx    # Entry edit modal
+    │   │   ├── InsightPanel.jsx        # Sidebar stats + insights
+    │   │   ├── Sidebar.jsx              # Main navigation sidebar
+    │   │   ├── SettingsContext.jsx     # Settings state loader
+    │   │   └── TypeBadge.jsx           # Entry type indicator
     │   ├── pages/
-    │   │   ├── GardenView.jsx           # Main garden page
-    │   │   └── FocusView.jsx            # Urgent items view
-    │   ├── utils/
-    │   │   ├── api.js                   # Axios HTTP client
-    │   │   └── voiceCapture.js          # Speech API wrapper
-    │   └── App.jsx
+    │   │   ├── GardenView.jsx          # Inbox / capture page
+    │   │   └── FocusView.jsx           # Focus mode page
+    │   └── utils/
+    │       ├── api.js                  # Axios client
+    │       ├── authApi.js              # Session + OTP helpers
+    │       ├── settingsApi.js          # Settings API helpers
+    │       └── voiceCapture.js         # Speech capture helper
+    ├── package.json
+    ├── package-lock.json
+    ├── postcss.config.js
     ├── tailwind.config.js
     └── vite.config.js
 ```
 
----
-
-## MongoDB Atlas Setup (Step-by-Step)
-
-### Step 1: Create an Atlas Account
-Go to https://www.mongodb.com/atlas and sign up free (M0 tier — no credit card).
-
-### Step 2: Create a Cluster
-1. Click "Build a Database"
-2. Choose "M0 Free" tier
-3. Pick cloud provider + region → Create Cluster
-
-### Step 3: Create a Database User
-1. Security → Database Access → Add New Database User
-2. Authentication: Password
-3. Username: `mindgarden-user`, set a password
-4. Role: "Read and write to any database"
-
-### Step 4: Whitelist Your IP
-1. Security → Network Access → Add IP Address
-2. For dev: "Allow Access From Anywhere"
-
-### Step 5: Get the Connection String
-1. Database → Connect → Drivers → Node.js
-2. Copy the string:
-   `mongodb+srv://<username>:<password>@cluster0.abc.mongodb.net/mindgarden?retryWrites=true&w=majority`
-3. Replace `<username>` and `<password>`
-
-### Step 6: Create backend/.env
-```
-MONGO_URI=mongodb+srv://mindgarden-user:yourpassword@cluster0.abc.mongodb.net/mindgarden?retryWrites=true&w=majority
-PORT=5000
-```
+> Note: The app currently uses only the main inbox and Focus Mode routes. Settings is not exposed in the sidebar navigation.
 
 ---
 
@@ -102,6 +87,16 @@ npm run dev
 ```
 
 Run both terminals simultaneously.
+
+---
+
+## Frontend Routes
+
+| Path | Page |
+|------|------|
+| `/` | Inbox / GardenView |
+| `/focus` | Focus Mode |
+| `*` | Redirects to `/` |
 
 ---
 
@@ -174,18 +169,6 @@ Rule-based keyword matching — no ML required.
 
 ---
 
-## Design System
-
-| Token | Value |
-|-------|-------|
-| Background | #F7F5F2 |
-| Primary | #5A7D7C (teal) |
-| Accent | #D8B08C (sand) |
-| Text | #2B2B2B |
-| Font | Inter + Poppins |
-
----
-
 ## Voice Input
 
 Uses the browser's built-in Web Speech API — no external API keys.
@@ -194,20 +177,20 @@ Uses the browser's built-in Web Speech API — no external API keys.
 
 ---
 
-## GenAI / LLM Mode
+## AI Parser Mode
 
-MindGarden uses an LLM as the first parser when `OPENAI_API_KEY` is configured.
+MindGarden can use an LLM as the first parser when `OPENAI_API_KEY` is configured.
 
 What the LLM does:
 - Reads the user's natural-language capture
 - Classifies it as `task`, `note`, `reminder`, or `idea`
-- Creates semantic tags such as `study`, `work`, `urgent`, `career`, or `general`
+- Creates semantic tags such as `study`, `work`, `urgent`, or `personal`
 - Generates a short summary
 - Extracts a due date when the user mentions one
 
-The app is beginner-friendly: if `OPENAI_API_KEY` is missing or the AI call fails, the backend automatically falls back to the original rule-based parser. Entries show an `AI` or `Rules` badge so you can tell which path was used.
+If `OPENAI_API_KEY` is missing or the AI call fails, the backend falls back to rule-based parsing.
 
-Add these to `backend/.env` to enable real LLM parsing:
+Add these to `backend/.env` to enable AI parsing:
 
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
@@ -222,4 +205,13 @@ GET http://localhost:5000/api/health
 
 ---
 
-*Built with love for clarity, calm, and focus.*
+## Tech Stack
+
+- Frontend: React 18, Vite, Tailwind CSS, Framer Motion
+- Backend: Node.js, Express, MongoDB / Mongoose
+- Auth: OTP sign in flow
+- Voice: Web Speech API
+
+---
+
+*Built with calm, clarity, and a focus-first design.*
